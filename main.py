@@ -1,5 +1,6 @@
 import arcade
 from game_state import GameState
+import random
 
 SCREEN_WIDTH = 840
 SCREEN_HEIGHT = 580
@@ -12,11 +13,17 @@ class Game(arcade.Window):
 
         self.player_position = SCREEN_WIDTH / 3
         self.bot_position = SCREEN_WIDTH / 3 * 2
-        self.state = GameState.NOT_STARTED
         self.rock_button = None
         self.scissors_button = None
         self.paper_button = None
         self.buttons_list = None
+
+        self.state = GameState.NOT_STARTED
+        self.pick = None
+        self.computer_pick = None
+        self.player_wins = 0
+        self.computer_wins = 0
+        self.result = None
 
     def setup(self):
         self.buttons_list = arcade.SpriteList()
@@ -27,9 +34,32 @@ class Game(arcade.Window):
         self.buttons_list.append(self.scissors_button)
         self.buttons_list.append(self.paper_button)
 
-
     def on_update(self, delta_time):
-        pass
+        if self.pick is not None and self.state is GameState.ROUND_ACTIVE:
+            # check if player won:
+            self.computer_pick = random_pick()
+            result = analyze_picks(self.pick, self.computer_pick)
+            if result == 1:
+                self.player_wins += 1
+            elif result == -1:
+                self.computer_wins += 1
+
+            # set the state accordingly
+            if self.computer_wins >= 3 or self.player_wins >= 3:
+                self.state = GameState.GAME_OVER
+            else:
+                self.state = GameState.ROUND_DONE
+                # show only the picked image
+                self.rock_button.visible = False
+                self.scissors_button.visible = False
+                self.paper_button.visible = False
+
+                if self.pick == "ROCK":
+                    self.rock_button.visible = True
+                elif self.pick == "PAPER":
+                    self.paper_button.visible = True
+                elif self.pick == "SCISSORS":
+                    self.scissors_button.visible = True
 
     def on_draw(self):
         self.clear()
@@ -37,6 +67,10 @@ class Game(arcade.Window):
             self.draw_not_started()
         elif self.state == GameState.ROUND_ACTIVE:
             self.draw_round_active()
+        elif self.state == GameState.ROUND_DONE:
+            self.draw_round_done()
+        elif self.state == GameState.GAME_OVER:
+            self.draw_game_over()
 
     def draw_round_active(self):
         arcade.draw_text(
@@ -49,8 +83,66 @@ class Game(arcade.Window):
             anchor_y="center",
             font_name="arial",
         )
-        self.buttons_list.draw()
+        self.draw_game_ui()
 
+    def draw_game_ui(self):
+        self.buttons_list.draw()
+        arcade.draw_text(
+            f"{self.player_wins} Victoires",
+            self.player_position,
+            100,
+            arcade.color.WHITE,
+            25,
+            anchor_x="center",
+            anchor_y="center",
+            font_name="arial",
+        )
+        arcade.draw_text(
+            f"{self.computer_wins} Victoires",
+            self.bot_position,
+            100,
+            arcade.color.WHITE,
+            25,
+            anchor_x="center",
+            anchor_y="center",
+            font_name="arial",
+        )
+
+    def draw_round_done(self):
+        self.draw_game_ui()
+        if self.result == 1:
+            arcade.draw_text(
+                "Vous avez gagné!",
+                SCREEN_WIDTH / 2,
+                SCREEN_HEIGHT - 80,
+                arcade.color.LIGHT_BLUE,
+                25,
+                anchor_x="center",
+                anchor_y="center",
+                font_name="arial",
+            )
+        elif self.result == -1:
+            arcade.draw_text(
+                "Vous avez perdu!",
+                SCREEN_WIDTH / 2,
+                SCREEN_HEIGHT - 80,
+                arcade.color.LIGHT_RED_OCHRE,
+                25,
+                anchor_x="center",
+                anchor_y="center",
+                font_name="arial",
+            )
+        elif self.result == 0:
+            arcade.draw_text(
+                "Egalité!",
+                SCREEN_WIDTH / 2,
+                SCREEN_HEIGHT - 80,
+                arcade.color.WHITE,
+                25,
+                anchor_x="center",
+                anchor_y="center",
+                font_name="arial",
+            )
 
     def draw_not_started(self):
         arcade.draw_text(
@@ -91,6 +183,31 @@ class Game(arcade.Window):
     def on_key_press(self, key, modifiers):
         if key == arcade.key.SPACE:
             self.state = GameState.ROUND_ACTIVE
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        if self.state == GameState.ROUND_ACTIVE:
+            if self.rock_button.collides_with_point((x, y)):
+                self.pick = "ROCK"
+            elif self.paper_button.collides_with_point((x, y)):
+                self.pick = "PAPER"
+            elif self.scissors_button.collides_with_point((x, y)):
+                self.pick = "SCISSORS"
+
+
+def analyze_picks(player_pick, computer_pick):
+    if player_pick == computer_pick:
+        return 0
+    elif player_pick == "ROCK":
+        return 1 if computer_pick == "SCISSORS" else -1
+    elif player_pick == "PAPER":
+        return 1 if computer_pick == "ROCK" else -1
+    elif player_pick == "SCISSORS":
+        return 1 if computer_pick == "PAPER" else -1
+
+
+def random_pick():
+    picks = ["ROCK", "PAPER", "SCISSORS"]
+    return random.choice(picks)
 
 def shadow_text(text, x, y, color, size, anchor_x="center", anchor_y="center"):
     arcade.draw_text(text, x + 1, y + 1, arcade.color.BLACK, size, anchor_x, anchor_y)
