@@ -17,6 +17,8 @@ class Game(arcade.Window):
         self.scissors_button = None
         self.paper_button = None
         self.buttons_list = None
+        self.computer_pick_icon = None
+        self.computer_pick_icon_list = None
 
         self.state = GameState.NOT_STARTED
         self.pick = None
@@ -33,11 +35,15 @@ class Game(arcade.Window):
         self.buttons_list.append(self.rock_button)
         self.buttons_list.append(self.scissors_button)
         self.buttons_list.append(self.paper_button)
+        self.computer_pick_icon_list = arcade.SpriteList()
+        self.computer_pick_icon = arcade.Sprite("assets/srock.png", 0.5, self.bot_position, SCREEN_HEIGHT / 2 - 50)
+        self.computer_pick_icon_list.append(self.computer_pick_icon)
 
     def on_update(self, delta_time):
         if self.pick is not None and self.state is GameState.ROUND_ACTIVE:
             # check if player won:
             self.computer_pick = random_pick()
+            self.computer_pick_icon.texture = arcade.load_texture(get_image_path(self.computer_pick))
             result = analyze_picks(self.pick, self.computer_pick)
             if result == 1:
                 self.player_wins += 1
@@ -50,9 +56,7 @@ class Game(arcade.Window):
             else:
                 self.state = GameState.ROUND_DONE
                 # show only the picked image
-                self.rock_button.visible = False
-                self.scissors_button.visible = False
-                self.paper_button.visible = False
+                self.set_visibility_buttons(False)
 
                 if self.pick == "ROCK":
                     self.rock_button.visible = True
@@ -72,6 +76,20 @@ class Game(arcade.Window):
         elif self.state == GameState.GAME_OVER:
             self.draw_game_over()
 
+    def draw_game_over(self):
+        self.draw_game_ui()
+        arcade.draw_text(
+            "Appuyez sur espace pour débuter une nouvelle partie",
+            SCREEN_WIDTH / 2,
+            SCREEN_HEIGHT / 2 + 100,
+            arcade.color.WHITE,
+            30,
+            anchor_x="center",
+            anchor_y="center",
+            font_name="arial",
+        )
+
+
     def draw_round_active(self):
         arcade.draw_text(
             "Appuyez sur une image pour faire une attaque!",
@@ -87,6 +105,8 @@ class Game(arcade.Window):
 
     def draw_game_ui(self):
         self.buttons_list.draw()
+        if self.state == GameState.ROUND_DONE:
+            self.computer_pick_icon_list.draw()
         arcade.draw_text(
             f"{self.player_wins} Victoires",
             self.player_position,
@@ -110,6 +130,17 @@ class Game(arcade.Window):
 
     def draw_round_done(self):
         self.draw_game_ui()
+        arcade.draw_text(
+            "Appuyez sur espace pour continuer la partie",
+            SCREEN_WIDTH / 2,
+            SCREEN_HEIGHT / 2 + 100,
+            arcade.color.WHITE,
+            30,
+            anchor_x="center",
+            anchor_y="center",
+            font_name="arial",
+        )
+
         if self.result == 1:
             arcade.draw_text(
                 "Vous avez gagné!",
@@ -181,8 +212,16 @@ class Game(arcade.Window):
         )
 
     def on_key_press(self, key, modifiers):
-        if key == arcade.key.SPACE:
-            self.state = GameState.ROUND_ACTIVE
+        if self.state == GameState.NOT_STARTED:
+            if key == arcade.key.SPACE:
+                self.state = GameState.ROUND_ACTIVE
+        elif self.state == GameState.ROUND_DONE:
+            if key == arcade.key.SPACE:
+                self.result = None
+                self.pick = None
+                self.computer_pick = None
+                self.state = GameState.ROUND_ACTIVE
+                self.set_visibility_buttons(True)
 
     def on_mouse_press(self, x, y, button, modifiers):
         if self.state == GameState.ROUND_ACTIVE:
@@ -193,6 +232,19 @@ class Game(arcade.Window):
             elif self.scissors_button.collides_with_point((x, y)):
                 self.pick = "SCISSORS"
 
+    def set_visibility_buttons(self, visible):
+        self.rock_button.visible = visible
+        self.scissors_button.visible = visible
+        self.paper_button.visible = visible
+
+
+def get_image_path(pick):
+    if pick == "ROCK":
+        return "assets/srock.png"
+    elif pick == "PAPER":
+        return "assets/spaper.png"
+    elif pick == "SCISSORS":
+        return "assets/scissors.png"
 
 def analyze_picks(player_pick, computer_pick):
     if player_pick == computer_pick:
