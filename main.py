@@ -19,6 +19,9 @@ class Game(arcade.Window):
         self.buttons_list = None
         self.computer_pick_icon = None
         self.computer_pick_icon_list = None
+        self.player_icons_list = None
+        self.player_icon = None
+        self.bot_icon = None
 
         self.state = GameState.NOT_STARTED
         self.pick = None
@@ -39,11 +42,18 @@ class Game(arcade.Window):
         self.computer_pick_icon = arcade.Sprite("assets/srock.png", 0.5, self.bot_position, SCREEN_HEIGHT / 2 - 50)
         self.computer_pick_icon_list.append(self.computer_pick_icon)
 
+        self.player_icons_list = arcade.SpriteList()
+        self.player_icon = arcade.Sprite("assets/faceBeard.png", 0.3, self.player_position, SCREEN_HEIGHT/2 + 50)
+        self.bot_icon = arcade.Sprite("assets/compy.png", 1.3, self.bot_position, SCREEN_HEIGHT / 2 + 50)
+        self.player_icons_list.append(self.player_icon)
+        self.player_icons_list.append(self.bot_icon)
+
     def on_update(self, delta_time):
         if self.pick is not None and self.state is GameState.ROUND_ACTIVE:
             # check if player won:
             self.computer_pick = random_pick()
             self.computer_pick_icon.texture = arcade.load_texture(get_image_path(self.computer_pick))
+            print(arcade.load_texture(get_image_path(self.computer_pick)))
             result = analyze_picks(self.pick, self.computer_pick)
             if result == 1:
                 self.player_wins += 1
@@ -79,14 +89,17 @@ class Game(arcade.Window):
     def draw_game_over(self):
         self.draw_game_ui()
         arcade.draw_text(
-            "Appuyez sur espace pour débuter une nouvelle partie",
+            "Appuyez sur espace pour débuter\nune nouvelle partie",
             SCREEN_WIDTH / 2,
-            SCREEN_HEIGHT / 2 + 100,
+            SCREEN_HEIGHT / 2 + 200,
             arcade.color.WHITE,
             30,
             anchor_x="center",
             anchor_y="center",
             font_name="arial",
+            multiline=True,
+            width=SCREEN_WIDTH - 100,
+            align="center",
         )
 
 
@@ -105,7 +118,8 @@ class Game(arcade.Window):
 
     def draw_game_ui(self):
         self.buttons_list.draw()
-        if self.state == GameState.ROUND_DONE:
+        self.player_icons_list.draw()
+        if self.state == GameState.ROUND_DONE or self.state is GameState.GAME_OVER:
             self.computer_pick_icon_list.draw()
         arcade.draw_text(
             f"{self.player_wins} Victoires",
@@ -133,7 +147,7 @@ class Game(arcade.Window):
         arcade.draw_text(
             "Appuyez sur espace pour continuer la partie",
             SCREEN_WIDTH / 2,
-            SCREEN_HEIGHT / 2 + 100,
+            SCREEN_HEIGHT / 2 + 200,
             arcade.color.WHITE,
             30,
             anchor_x="center",
@@ -222,6 +236,15 @@ class Game(arcade.Window):
                 self.computer_pick = None
                 self.state = GameState.ROUND_ACTIVE
                 self.set_visibility_buttons(True)
+        elif self.state == GameState.GAME_OVER:
+            if key == arcade.key.SPACE:
+                self.player_wins = 0
+                self.computer_wins = 0
+                self.set_visibility_buttons(True)
+                self.result = None
+                self.pick = None
+                self.computer_pick = None
+                self.state = GameState.ROUND_ACTIVE
 
     def on_mouse_press(self, x, y, button, modifiers):
         if self.state == GameState.ROUND_ACTIVE:
