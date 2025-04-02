@@ -1,5 +1,6 @@
 import arcade
 from game_state import GameState
+from attack_animation import AttackAnimation, AttackType
 import random
 
 SCREEN_WIDTH = 840
@@ -32,9 +33,18 @@ class Game(arcade.Window):
 
     def setup(self):
         self.buttons_list = arcade.SpriteList()
-        self.rock_button = arcade.Sprite("assets/srock.png", 0.5, self.player_position - 80, SCREEN_HEIGHT / 2 - 50)
-        self.scissors_button = arcade.Sprite("assets/scissors.png", 0.5, self.player_position, SCREEN_HEIGHT / 2 - 50)
-        self.paper_button = arcade.Sprite("assets/spaper.png", 0.5, self.player_position + 80, SCREEN_HEIGHT / 2 - 50)
+        #self.rock_button = arcade.Sprite("assets/srock.png", 0.5, self.player_position - 80, SCREEN_HEIGHT / 2 - 50)
+        self.rock_button = AttackAnimation(AttackType.ROCK)
+        self.rock_button.center_x = self.player_position - 80
+        self.rock_button.center_y = SCREEN_HEIGHT / 2 - 50
+        #self.scissors_button = arcade.Sprite("assets/scissors.png", 0.5, self.player_position, SCREEN_HEIGHT / 2 - 50)
+        self.scissors_button = AttackAnimation(AttackType.SCISSORS)
+        self.scissors_button.center_x = self.player_position
+        self.scissors_button.center_y = SCREEN_HEIGHT / 2 - 50
+        #self.paper_button = arcade.Sprite("assets/spaper.png", 0.5, self.player_position + 80, SCREEN_HEIGHT / 2 - 50)
+        self.paper_button = AttackAnimation(AttackType.PAPER)
+        self.paper_button.center_x = self.player_position + 80
+        self.paper_button.center_y = SCREEN_HEIGHT / 2 - 50
         self.buttons_list.append(self.rock_button)
         self.buttons_list.append(self.scissors_button)
         self.buttons_list.append(self.paper_button)
@@ -48,7 +58,7 @@ class Game(arcade.Window):
         self.player_icons_list.append(self.player_icon)
         self.player_icons_list.append(self.bot_icon)
 
-    def on_update(self, delta_time):
+    def on_update(self, delta_time: float = 1 / 60):
         if self.pick is not None and self.state is GameState.ROUND_ACTIVE:
             # check if player won:
             self.computer_pick = random_pick()
@@ -74,6 +84,10 @@ class Game(arcade.Window):
                     self.paper_button.visible = True
                 elif self.pick == "SCISSORS":
                     self.scissors_button.visible = True
+
+        self.rock_button.on_update()
+        self.scissors_button.on_update()
+        self.paper_button.on_update()
 
     def on_draw(self):
         self.clear()
@@ -118,6 +132,7 @@ class Game(arcade.Window):
 
     def draw_game_ui(self):
         self.buttons_list.draw()
+        #self.rock_button.draw()
         self.player_icons_list.draw()
         if self.state == GameState.ROUND_DONE or self.state is GameState.GAME_OVER:
             self.computer_pick_icon_list.draw()
@@ -259,6 +274,8 @@ class Game(arcade.Window):
         self.rock_button.visible = visible
         self.scissors_button.visible = visible
         self.paper_button.visible = visible
+
+
 
 
 def get_image_path(pick):
